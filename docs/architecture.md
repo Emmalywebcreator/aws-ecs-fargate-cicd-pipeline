@@ -25,7 +25,18 @@
 ## 3. Architecture
 
  ```mermaid
- (paste the diagram from Lab 3 here)
+ flowchart LR
+  dev[Developer<br/>WSL + VS Code] -->|git push / PR| gh[GitHub repo]
+  gh --> gha[GitHub Actions]
+  gha -->|OIDC token| sts[AWS STS<br/>AssumeRoleWithWebIdentity]
+  sts -->|short-lived creds| gha
+  gha -->|docker push :git-sha| ecr[(Amazon ECR)]
+  gha -->|register task def + update service| ecs[ECS service<br/>Fargate]
+  user[Browser] -->|HTTP :80| alb[Application Load Balancer<br/>public subnets]
+  alb -->|:8000, SG allows ALB only| task[Fargate task<br/>FastAPI container]
+  ecs --- task
+  task -->|pull image| ecr
+  task -->|stdout logs| cw[CloudWatch Logs<br/>7-day retention]
  ```
 
 ### Components
@@ -43,16 +54,16 @@
 | GitHub Actions is a function deploy(commit). OIDC is how it logs in without a hard-coded password. ECR is the storage it writes to. ECS is a while True: loop that keeps the app running. The ALB is the only public entry point.
 
 ## 4. Request path
-| browser → DNS → ALB:80 → task:8000 → FastAPI
+
+browser → DNS → ALB:80 → task:8000 → FastAPI
+
+| Step | What happens | Breaks if | Symptom |
 |---|---|---|---|
-| Step	| What happens	| Breaks if	| Symptom |
-|1	|Browser asks DNS for the ALB's name and gets its IPs	|Wrong name	|DNS error|
-|2	|Browser connects to the ALB on port 80 (443 with HTTPS)	|ALB security group doesn't allow it	|Timeout|
-|3	|ALB connects to the task's IP on port 8000	|Task SG doesn't allow traffic from the ALB SG|	Timeout|
-|4	|Uvicorn, bound to 0.0.0.0:8000, hands the request to FastAPI	|Bound to 127.0.0.1, wrong port, or crashed	|Refused|
-|5	|FastAPI returns 200 on /health	|App errors, so the target is unhealthy|	503 from the ALB|
-
-
+| 1 | Browser asks DNS for the ALB's name and gets its IPs | Wrong name | DNS error |
+| 2 | Browser connects to the ALB on port 80 (443 with HTTPS) | ALB security group doesn't allow it | Timeout |
+| 3 | ALB connects to the task's IP on port 8000 | Task SG doesn't allow traffic from the ALB SG | Timeout |
+| 4 | Uvicorn, bound to 0.0.0.0:8000, hands the request to FastAPI | Bound to 127.0.0.1, wrong port, or crashed | Refused |
+| 5 | FastAPI returns 200 on /health | App errors, so the target is unhealthy | 503 from the ALB |
 
 ## 5. Key decisions
 | Decision | Alternatives considered | Why this one | Trade-off accepted |
