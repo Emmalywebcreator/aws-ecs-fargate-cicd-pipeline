@@ -15,7 +15,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Say hello
-        run: echo "Hello from Github Actions on PR #${{ github.event.pull_request.number }}"
+        run: |
+          echo "Hello from GitHub Actions on PR #${{ github.event.pull_request.number }}"
 
       - name: Show where we are
         run: |
