@@ -17,8 +17,8 @@ jobs:
       - name: Say hello
         run: echo "Hello from Github Actions on PR #${{ github.event.pull_request.number }}"
 
-       - name: Show where we are
-         run: |
-           uname -a
-           python3 --version
-           ls -la
+      - name: Show where we are
+        run: |
+          uname -a
+          python3 --version
+          ls -la
