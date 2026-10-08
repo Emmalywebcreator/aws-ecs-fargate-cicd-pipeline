@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Say hello
+        run: echo "Hello from Github Actions on PR #${{ github.event.pull_request.number }}"
+
+       - name: Show where we are
+         run: |
+           uname -a
+           python3 --version
+           ls -la
